@@ -1,9 +1,9 @@
 ﻿namespace WinFormsApp1;
 
-public class Vertex(int x, int y, string name)
+public class Vertex(int x, int y, int id)
 {
     public int X = x;
     public int Y = y;
-    public string Name = name;
+    public int Id = id;
     public bool Selected = false;
 }

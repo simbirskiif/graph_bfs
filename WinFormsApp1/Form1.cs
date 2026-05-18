@@ -25,7 +25,7 @@ public partial class Form1 : Form
         if (collusion != null)
         {
             UnselectAll();
-            var index = _vertices.FindIndex(x => x.Name == collusion.Name);
+            var index = _vertices.FindIndex(x => x.Id == collusion.Id);
             if (index != -1)
             {
                 var v = _vertices[index];
@@ -35,7 +35,7 @@ public partial class Form1 : Form
         }
         else
         {
-            _vertices.Add(new Vertex(e.X, e.Y, _vertices.Count.ToString()));
+            _vertices.Add(new Vertex(e.X, e.Y, _vertices.Count));
         }
 
         picture.Invalidate();
@@ -54,8 +54,7 @@ public partial class Form1 : Form
 
     private void OnClickOutCollusion(int x, int y)
     {
-        
-        _vertices.Add(new Vertex(x, y, _vertices.Count.ToString()));
+        _vertices.Add(new Vertex(x, y, _vertices.Count));
     }
 
     private void picture_Paint(object sender, PaintEventArgs e)
@@ -70,11 +69,11 @@ public partial class Form1 : Form
         {
             var v = _vertices[index];
             var brush = !_isDragging ? v.Selected ? Brushes.Red : Brushes.Gray :
-                int.Parse(v.Name) == _startSelectedIndex ? Brushes.Blue : Brushes.Gray;
+                v.Id == _startSelectedIndex ? Brushes.Blue : Brushes.Gray;
             g.FillEllipse(brush, v.X - _radius / 2, v.Y - _radius / 2, _radius, _radius);
             g.DrawEllipse(pen, v.X - _radius / 2, v.Y - _radius / 2, _radius, _radius);
 
-            g.DrawString(v.Name, this.Font, Brushes.Black, v.X, v.Y, format);
+            g.DrawString(v.Id.ToString(), this.Font, Brushes.Black, v.X, v.Y, format);
         }
 
         if (_isDragging)
@@ -159,7 +158,7 @@ public partial class Form1 : Form
                 Console.WriteLine("Создать соедененное");
             }
             else if (_startSelected == _selectedVertex)
-            
+
             {
                 OnClickOutCollusion(e.X, e.Y);
             }
