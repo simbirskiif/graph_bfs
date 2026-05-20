@@ -123,7 +123,6 @@ public partial class Form1 : Form
 
     private void DrawVertices(Graphics g, StringFormat format, Pen pen)
     {
-        // Что видно на текущем шаге BFS
         var visited = _bfsSteps.Take(_currentBfsStep + 1).Select(s => s.Id).ToHashSet();
         var current = _currentBfsStep >= 0 ? _bfsSteps[_currentBfsStep].Id : -1;
         var frontier = _currentBfsStep >= 0
@@ -136,7 +135,7 @@ public partial class Form1 : Form
 
             if (_currentBfsStep < 0)
             {
-                // BFS не запущен — обычная отрисовка
+
                 fill = !_isDragging
                     ? v.Selected ? Brushes.Red : Brushes.Gray
                     : v.Id == _startSelected?.Id
@@ -173,7 +172,6 @@ public partial class Form1 : Form
             var b = _vertices.FirstOrDefault(v => v.Id == edge.To);
             if (a is null || b is null) continue;
 
-            // Подсветить рёбра от текущей вершины к её соседям
             bool isActive = (edge.From == current && frontier.Contains(edge.To)) ||
                             (edge.To == current && frontier.Contains(edge.From));
 
@@ -245,7 +243,7 @@ public partial class Form1 : Form
                 _vertices.Add(new Vertex(e.X, e.Y, graphVertex.Id));
                 _graph.AddEdge(_startSelected.Id, graphVertex.Id);
             }
-            else if (_startSelected == _selectedVertex) // оба null
+            else if (_startSelected == _selectedVertex)
             {
                 //  новая вершина без рёбер
                 OnClickOutCollusion(e.X, e.Y);
