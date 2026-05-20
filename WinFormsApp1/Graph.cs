@@ -11,7 +11,7 @@ public class Graph
 
     public IReadOnlyList<GraphVertex> Vertices => _vertices;
     public IReadOnlyList<GraphEdge> Edges => _edges;
-    
+
 
     public GraphVertex AddVertex()
     {
@@ -55,4 +55,27 @@ public class Graph
 
     public bool HasEdge(int id1, int id2) =>
         _edges.Any(e => (e.From == id1 && e.To == id2) || (e.To == id1 && e.From == id2));
+
+    public IEnumerable<BfsStep> BfsSteps(int startId)
+    {
+        if (!HasVertex(startId)) yield break;
+
+        var visited = new HashSet<int>();
+        var queue = new Queue<(int id, int depth)>();
+
+        queue.Enqueue((startId, 0));
+        visited.Add(startId);
+
+        while (queue.Count > 0)
+        {
+            var (current, depth) = queue.Dequeue();
+            var neighbors = Neighbors(current).ToList();
+
+            yield return new BfsStep(current, depth, neighbors);
+
+            foreach (int neighbor in neighbors)
+                if (visited.Add(neighbor))
+                    queue.Enqueue((neighbor, depth + 1));
+        }
+    }
 }
