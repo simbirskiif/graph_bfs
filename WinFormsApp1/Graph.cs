@@ -78,4 +78,18 @@ public class Graph
                     queue.Enqueue((neighbor, depth + 1));
         }
     }
+
+    public GraphVertex AddVertex(int id)
+    {
+        var vertex = new GraphVertex(id);
+        _vertices.Add(vertex);
+        if (id >= _lastId) _lastId = id + 1;
+        return vertex;
+    }
+    public void Clear()
+    {
+        _vertices.Clear();
+        _edges.Clear();
+        _lastId = 0;
+    }
 }

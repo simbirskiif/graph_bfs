@@ -1,4 +1,5 @@
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 
 namespace WinFormsApp1;
 
@@ -20,9 +21,14 @@ public partial class Form1 : Form
 
     private int _currentBfsStep = -1;
 
+    private readonly IBfsAlgorithm _bfsAlgorithm = new BfsAlgorithm(
+        LoggerFactory.Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Debug))
+            .CreateLogger<BfsAlgorithm>()
+    );
 
     public Form1()
     {
+        BuildMenu();
         InitializeComponent();
         this.KeyPreview = true;
         this.KeyDown += (s, e) =>
@@ -59,6 +65,128 @@ public partial class Form1 : Form
         };
     }
 
+    private void BuildMenu()
+    {
+        var menuStrip = new MenuStrip();
+
+        var fileMenu = new ToolStripMenuItem("Файл");
+
+        var saveItem = new ToolStripMenuItem("Сохранить...");
+        saveItem.Click += (_, _) => SaveGraph();
+
+        var loadItem = new ToolStripMenuItem("Загрузить...");
+        loadItem.Click += (_, _) => LoadGraph();
+
+        var aboutItem = new ToolStripMenuItem("О программе");
+        aboutItem.Click += (_, _) =>
+        {
+            var s = new BfsSettings();
+            MessageBox.Show(s.Description, s.Name,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        };
+
+        fileMenu.DropDownItems.AddRange([saveItem, loadItem, new ToolStripSeparator(), aboutItem]);
+        menuStrip.Items.Add(fileMenu);
+
+        this.MainMenuStrip = menuStrip;
+        this.Controls.Add(menuStrip);
+    }
+
+    private void SaveGraph()
+    {
+        var selected = _vertices.FirstOrDefault(v => v.Selected);
+        if (selected == null && _bfsSteps.Count == 0)
+        {
+            MessageBox.Show("Выделите стартовую вершину и запустите BFS перед сохранением.",
+                "Нет данных", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "BFS файлы (*.bfs)|*.bfs|Все файлы (*.*)|*.*",
+            DefaultExt = "bfs",
+            Title = "Сохранить граф"
+        };
+
+        if (dialog.ShowDialog() != DialogResult.OK) return;
+
+        try
+        {
+            var settings = BuildCurrentSettings();
+            _bfsAlgorithm.SaveToFile(dialog.FileName, _bfsSteps, settings);
+            MessageBox.Show("Сохранено успешно.", "Сохранение",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void LoadGraph()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "BFS файлы (*.bfs)|*.bfs|Все файлы (*.*)|*.*",
+            Title = "Загрузить граф"
+        };
+
+        if (dialog.ShowDialog() != DialogResult.OK) return;
+
+        try
+        {
+            var settings = _bfsAlgorithm.LoadFromFile(dialog.FileName);
+
+            // Восстановить граф
+            _graph.Clear(); // см. ниже
+            _vertices.Clear();
+            _bfsSteps = [];
+            _currentBfsStep = -1;
+
+            // Расставить вершины по кругу (координаты не хранятся в файле)
+            int count = settings.VertexIds.Count;
+            int cx = picture.Width / 2, cy = picture.Height / 2;
+            int r = Math.Min(cx, cy) - 60;
+
+            for (int i = 0; i < count; i++)
+            {
+                int id = settings.VertexIds[i];
+                double angle = 2 * Math.PI * i / count - Math.PI / 2;
+                int x = cx + (int)(r * Math.Cos(angle));
+                int y = cy + (int)(r * Math.Sin(angle));
+
+                _graph.AddVertex(id);
+                _vertices.Add(new Vertex(x, y, id));
+            }
+
+            foreach (var (from, to) in settings.Edges)
+                _graph.AddEdge(from, to);
+
+            picture.Invalidate();
+            MessageBox.Show("Загружено успешно.", "Загрузка",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Ошибка загрузки: {ex.Message}", "Ошибка",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private BfsSettings BuildCurrentSettings()
+    {
+        var selected = _vertices.FirstOrDefault(v => v.Selected);
+        return new BfsSettings
+        {
+            VertexIds = _vertices.Select(v => v.Id).ToList(),
+            Edges = _graph.Edges.Select(e => (e.From, e.To)).ToList(),
+            StartVertexId = selected?.Id ?? (_bfsSteps.Count > 0 ? _bfsSteps[0].Id : -1),
+            CollectionSize = _vertices.Count
+        };
+    }
+
     private void picture_MouseClick(object sender, MouseEventArgs e)
     {
         var collusion = Collusion(e.X, e.Y);
@@ -89,6 +217,7 @@ public partial class Form1 : Form
             _vertices[index].Selected = true;
             _currentBfsStep = -1;
         }
+
         picture.Invalidate();
     }
 
@@ -135,7 +264,6 @@ public partial class Form1 : Form
 
             if (_currentBfsStep < 0)
             {
-
                 fill = !_isDragging
                     ? v.Selected ? Brushes.Red : Brushes.Gray
                     : v.Id == _startSelected?.Id
