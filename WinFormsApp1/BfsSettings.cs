@@ -2,9 +2,10 @@
 
 public class BfsSettings : AlgorithmSettings
 {
-    // Стандартная коллекция — список рёбер (from, to)
     public List<(int From, int To)> Edges { get; set; } = [];
-    public List<int> VertexIds { get; set; } = [];
+
+    public List<(int Id, int X, int Y)> Vertices { get; set; } = [];
+
     public int StartVertexId { get; set; } = -1;
 
     public BfsSettings()

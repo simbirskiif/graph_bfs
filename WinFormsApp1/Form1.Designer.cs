@@ -39,7 +39,7 @@ partial class Form1
         picture.BackColor = System.Drawing.SystemColors.ActiveCaption;
         picture.Location = new System.Drawing.Point(0, 0);
         picture.Name = "picture";
-        picture.Size = new System.Drawing.Size(600, 450);
+        picture.Size = new System.Drawing.Size(788, 450);
         picture.TabIndex = 0;
         picture.TabStop = false;
         picture.Paint += picture_Paint;

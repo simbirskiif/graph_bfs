@@ -138,27 +138,17 @@ public partial class Form1 : Form
         try
         {
             var settings = _bfsAlgorithm.LoadFromFile(dialog.FileName);
-
-            // Восстановить граф
-            _graph.Clear(); // см. ниже
+            
+            _graph.Clear();
             _vertices.Clear();
             _bfsSteps = [];
             _currentBfsStep = -1;
-
-            // Расставить вершины по кругу (координаты не хранятся в файле)
-            int count = settings.VertexIds.Count;
-            int cx = picture.Width / 2, cy = picture.Height / 2;
-            int r = Math.Min(cx, cy) - 60;
-
-            for (int i = 0; i < count; i++)
+            
+            foreach (var v in settings.Vertices)
             {
-                int id = settings.VertexIds[i];
-                double angle = 2 * Math.PI * i / count - Math.PI / 2;
-                int x = cx + (int)(r * Math.Cos(angle));
-                int y = cy + (int)(r * Math.Sin(angle));
-
-                _graph.AddVertex(id);
-                _vertices.Add(new Vertex(x, y, id));
+                _graph.AddVertex(v.Id);
+                
+                _vertices.Add(new Vertex(v.X, v.Y, v.Id));
             }
 
             foreach (var (from, to) in settings.Edges)
@@ -180,7 +170,7 @@ public partial class Form1 : Form
         var selected = _vertices.FirstOrDefault(v => v.Selected);
         return new BfsSettings
         {
-            VertexIds = _vertices.Select(v => v.Id).ToList(),
+            Vertices = _vertices.Select(v => (v.Id, v.X, v.Y)).ToList(),
             Edges = _graph.Edges.Select(e => (e.From, e.To)).ToList(),
             StartVertexId = selected?.Id ?? (_bfsSteps.Count > 0 ? _bfsSteps[0].Id : -1),
             CollectionSize = _vertices.Count

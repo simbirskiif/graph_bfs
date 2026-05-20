@@ -20,7 +20,7 @@ public class BfsAlgorithm : IBfsAlgorithm
         }
 
         _logger.LogInformation("Запуск BFS. Вершин: {V}, рёбер: {E}, старт: {S}",
-            bfsSettings.VertexIds.Count, bfsSettings.Edges.Count, bfsSettings.StartVertexId);
+            bfsSettings.Vertices.Count, bfsSettings.Edges.Count, bfsSettings.StartVertexId);
 
         var graph = BuildGraph(bfsSettings);
         var steps = graph.BfsSteps(bfsSettings.StartVertexId).ToList();
@@ -36,20 +36,20 @@ public class BfsAlgorithm : IBfsAlgorithm
             _logger.LogInformation("Сохранение в файл: {Path}", filePath);
 
             using var writer = new StreamWriter(filePath);
-            // Вершины
-            writer.WriteLine("VERTICES");
-            writer.WriteLine(string.Join(",", settings.VertexIds));
 
-            // Рёбра
+            writer.WriteLine("VERTICES");
+            foreach (var v in settings.Vertices)
+            {
+                writer.WriteLine($"{v.Id};{v.X};{v.Y}");
+            }
+
             writer.WriteLine("EDGES");
             foreach (var (from, to) in settings.Edges)
                 writer.WriteLine($"{from};{to}");
 
-            // Стартовая вершина
             writer.WriteLine("START");
             writer.WriteLine(settings.StartVertexId);
 
-            // Шаги BFS
             writer.WriteLine("STEPS");
             foreach (var step in steps)
                 writer.WriteLine($"{step.Id};{step.Depth};{string.Join(",", step.Neighbors)}");
@@ -70,11 +70,14 @@ public class BfsAlgorithm : IBfsAlgorithm
             _logger.LogInformation("Загрузка из файла: {Path}", filePath);
 
             var settings = new BfsSettings();
+            settings.Vertices = new List<(int Id, int X, int Y)>();
             var lines = File.ReadAllLines(filePath);
             var section = "";
 
             foreach (var line in lines)
             {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
                 if (line is "VERTICES" or "EDGES" or "START" or "STEPS")
                 {
                     section = line;
@@ -84,15 +87,28 @@ public class BfsAlgorithm : IBfsAlgorithm
                 switch (section)
                 {
                     case "VERTICES":
-                        if (!string.IsNullOrWhiteSpace(line))
-                            settings.VertexIds = line.Split(',')
-                                .Select(int.Parse).ToList();
+                        var vParts = line.Split(';');
+                        if (vParts.Length == 3)
+                        {
+                            settings.Vertices.Add((
+                                int.Parse(vParts[0]),
+                                int.Parse(vParts[1]),
+                                int.Parse(vParts[2])
+                            ));
+                        }
+                        else if (line.Contains(','))
+                        {
+                            var ids = line.Split(',').Select(int.Parse);
+                            foreach (var id in ids)
+                                settings.Vertices.Add((id, 0, 0)); 
+                        }
+
                         break;
 
                     case "EDGES":
-                        var parts = line.Split(';');
-                        if (parts.Length == 2)
-                            settings.Edges.Add((int.Parse(parts[0]), int.Parse(parts[1])));
+                        var eParts = line.Split(';');
+                        if (eParts.Length == 2)
+                            settings.Edges.Add((int.Parse(eParts[0]), int.Parse(eParts[1])));
                         break;
 
                     case "START":
@@ -102,9 +118,9 @@ public class BfsAlgorithm : IBfsAlgorithm
                 }
             }
 
-            settings.CollectionSize = settings.VertexIds.Count;
+            settings.CollectionSize = settings.Vertices.Count;
             _logger.LogInformation("Загрузка завершена. Вершин: {V}, рёбер: {E}",
-                settings.VertexIds.Count, settings.Edges.Count);
+                settings.Vertices.Count, settings.Edges.Count);
 
             return settings;
         }
@@ -118,10 +134,13 @@ public class BfsAlgorithm : IBfsAlgorithm
     private static Graph BuildGraph(BfsSettings settings)
     {
         var graph = new Graph();
-        foreach (var id in settings.VertexIds)
-            graph.AddVertex(id);
+
+        foreach (var vertex in settings.Vertices)
+            graph.AddVertex(vertex.Id);
+
         foreach (var (from, to) in settings.Edges)
             graph.AddEdge(from, to);
+
         return graph;
     }
 }
